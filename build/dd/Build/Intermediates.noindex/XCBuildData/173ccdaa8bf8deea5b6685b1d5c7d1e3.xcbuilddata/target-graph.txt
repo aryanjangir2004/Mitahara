@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'Mitahara' in project 'Mitahara'
+➜ Explicit dependency on target 'KrecWidgets' in project 'Mitahara'
+Target 'KrecWidgets' in project 'Mitahara' (no dependencies)

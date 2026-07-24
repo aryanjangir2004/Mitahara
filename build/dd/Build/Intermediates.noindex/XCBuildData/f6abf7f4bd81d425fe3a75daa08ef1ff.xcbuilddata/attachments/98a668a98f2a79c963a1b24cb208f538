@@ -1,0 +1,39 @@
+{
+  "" : {
+    "diagnostics" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets-primary.dia",
+    "emit-module-dependencies" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets-primary-emit-module.dia",
+    "pch" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets-primary.swiftdeps"
+  },
+  "/Users/aryanjangir/Documents/New project/Mitahara/KrecWidgets/KrecWidgets.swift" : {
+    "const-values" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets.swiftconstvalues",
+    "dependencies" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets.d",
+    "diagnostics" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets.dia",
+    "index-unit-output-path" : "/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets.o",
+    "llvm-bc" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets.bc",
+    "object" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets.o",
+    "swift-dependencies" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets.swiftdeps",
+    "swiftmodule" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/KrecWidgets~partial.swiftmodule"
+  },
+  "/Users/aryanjangir/Documents/New project/Mitahara/KrecWidgets/WidgetViews.swift" : {
+    "const-values" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/WidgetViews.swiftconstvalues",
+    "dependencies" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/WidgetViews.d",
+    "diagnostics" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/WidgetViews.dia",
+    "index-unit-output-path" : "/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/WidgetViews.o",
+    "llvm-bc" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/WidgetViews.bc",
+    "object" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/WidgetViews.o",
+    "swift-dependencies" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/WidgetViews.swiftdeps",
+    "swiftmodule" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/WidgetViews~partial.swiftmodule"
+  },
+  "/Users/aryanjangir/Documents/New project/Mitahara/Shared/Models.swift" : {
+    "const-values" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/Models.swiftconstvalues",
+    "dependencies" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/Models.d",
+    "diagnostics" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/Models.dia",
+    "index-unit-output-path" : "/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/Models.o",
+    "llvm-bc" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/Models.bc",
+    "object" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/Models.o",
+    "swift-dependencies" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/Models.swiftdeps",
+    "swiftmodule" : "/Users/aryanjangir/Documents/New project/Mitahara/build/dd/Build/Intermediates.noindex/Mitahara.build/Debug-iphonesimulator/KrecWidgets.build/Objects-normal/arm64/Models~partial.swiftmodule"
+  }
+}

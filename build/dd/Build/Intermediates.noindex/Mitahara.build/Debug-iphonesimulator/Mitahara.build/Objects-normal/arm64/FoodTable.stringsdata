@@ -1,0 +1,64 @@
+{
+  "source": "/Users/aryanjangir/Documents/New project/Mitahara/Mitahara/FoodTable.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "#",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 102
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 160
+        }
+      },
+      {
+        "comment": "",
+        "key": "Food",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 193
+        }
+      },
+      {
+        "comment": "",
+        "key": "0",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 193
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add entry",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 215
+        }
+      }
+    ]
+  },
+  "version": 1
+}

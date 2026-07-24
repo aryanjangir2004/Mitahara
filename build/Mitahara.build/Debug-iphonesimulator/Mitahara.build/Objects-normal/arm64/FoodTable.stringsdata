@@ -1,0 +1,32 @@
+{
+  "source": "/Users/aryanjangir/Documents/New project/Mitahara/Mitahara/FoodTable.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Food",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 96
+        }
+      },
+      {
+        "comment": "",
+        "key": "0",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 96
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add entry",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 118
+        }
+      }
+    ]
+  },
+  "version": 1
+}
