@@ -22,10 +22,12 @@ final class SettingsRecord {
     var columnsData: Data = Data()   // JSON-encoded [ColumnDef]
     var centerColumnID: UUID?
     var graceDaysPerMonth: Int?
+    var cheatDays: [String]?
 
-    init(columnsData: Data = Data(), centerColumnID: UUID? = nil, graceDaysPerMonth: Int? = nil) {
+    init(columnsData: Data = Data(), centerColumnID: UUID? = nil, graceDaysPerMonth: Int? = nil, cheatDays: [String]? = nil) {
         self.columnsData = columnsData
         self.centerColumnID = centerColumnID
         self.graceDaysPerMonth = graceDaysPerMonth
+        self.cheatDays = cheatDays
     }
 }

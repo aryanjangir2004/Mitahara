@@ -7,7 +7,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 24,
-          "startingLine": 116
+          "startingLine": 165
         }
       },
       {
@@ -15,7 +15,7 @@
         "key": "Make it yours",
         "location": {
           "startingColumn": 22,
-          "startingLine": 158
+          "startingLine": 207
         }
       },
       {
@@ -23,7 +23,7 @@
         "key": "Tap a column header to set its goal and ring color. Edit under the table adds and rearranges columns. Tap a total chip to change the center number.",
         "location": {
           "startingColumn": 22,
-          "startingLine": 161
+          "startingLine": 210
         }
       },
       {
@@ -31,7 +31,7 @@
         "key": "Krec",
         "location": {
           "startingColumn": 18,
-          "startingLine": 188
+          "startingLine": 237
         }
       },
       {
@@ -39,7 +39,7 @@
         "key": "%lld",
         "location": {
           "startingColumn": 18,
-          "startingLine": 225
+          "startingLine": 274
         }
       },
       {
@@ -47,7 +47,15 @@
         "key": "day streak",
         "location": {
           "startingColumn": 18,
-          "startingLine": 229
+          "startingLine": 278
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cheat day",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 306
         }
       }
     ]

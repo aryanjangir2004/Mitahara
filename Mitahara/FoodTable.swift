@@ -9,9 +9,21 @@ struct FoodTable: View {
     let onEditColumn: (ColumnDef) -> Void
     let onAddColumn: () -> Void
     let onArrange: () -> Void
+    /// Called (after the keyboard settles) with the focused row's frame in
+    /// global coordinates, so the outer scroll can bring it above the keyboard.
+    let onRowFocused: (CGRect) -> Void
+
+    /// Row frames in global space. A reference type on purpose: geometry
+    /// updates mutate it without invalidating the view.
+    private final class RowFrameCache {
+        var frames: [UUID: CGRect] = [:]
+    }
 
     @State private var isEditing = false
     @State private var availableWidth: CGFloat = 0
+    @State private var rowFrames = RowFrameCache()
+    @FocusState private var focusedRowID: UUID?
+    @AppStorage("cheatOverlayDismissedDay") private var cheatOverlayDismissedDay = ""
 
     /// Every column has the same floor width and the same gap between columns;
     /// beyond that, a column grows to fit its widest content.
@@ -56,27 +68,75 @@ struct FoodTable: View {
     var body: some View {
         VStack(spacing: 10) {
             VStack(spacing: 0) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        headerRow
-                        Divider().overlay(Color.white.opacity(0.15))
-                        ForEach(Array(store.rows(on: date).enumerated()), id: \.element.id) { index, row in
-                            entryRow(row, number: index + 1)
-                            Divider().overlay(Color.white.opacity(0.07))
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            headerRow
+                            Divider().overlay(Color.white.opacity(0.15))
+                            ForEach(Array(store.rows(on: date).enumerated()), id: \.element.id) { index, row in
+                                entryRow(row, number: index + 1)
+                                    .id(row.id)
+                                    .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame in
+                                        rowFrames.frames[row.id] = frame
+                                    }
+                                Divider().overlay(Color.white.opacity(0.07))
+                            }
                         }
                     }
-                }
-                .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { width in
-                    availableWidth = width
+                    .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { width in
+                        availableWidth = width
+                    }
+                    .onChange(of: isEditing) { _, editing in
+                        guard editing else { return }
+                        // Let the controls appear first, then slide them into view.
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 80_000_000)
+                            withAnimation(.snappy) {
+                                proxy.scrollTo("editControls", anchor: .trailing)
+                            }
+                        }
+                    }
                 }
 
                 addRowButton
             }
             .padding(.vertical, 6)
             .glassEffect(.regular, in: .rect(cornerRadius: 26))
+            .onChange(of: focusedRowID) { _, newValue in
+                guard let newValue else { return }
+                // Wait for the keyboard animation before repositioning.
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                    guard focusedRowID == newValue,
+                          let frame = rowFrames.frames[newValue] else { return }
+                    onRowFocused(frame)
+                }
+            }
 
             HStack {
+                Button {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                        if !store.isCheatDay(date) {
+                            // Re-marking should show the takeover again.
+                            cheatOverlayDismissedDay = ""
+                        }
+                        store.toggleCheatDay(date)
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: store.isCheatDay(date) ? "star.fill" : "star")
+                            .font(.caption.weight(.bold))
+                        Text("Cheat day")
+                            .font(.system(.footnote, design: .rounded).weight(.semibold))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                }
+                .buttonStyle(.glass)
+                .tint(store.isCheatDay(date) ? .orange : nil)
+
                 Spacer()
+
                 Button {
                     withAnimation(.snappy) {
                         isEditing.toggle()
@@ -150,6 +210,7 @@ struct FoodTable: View {
                 }
                 .padding(.horizontal, 10)
                 .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                .id("editControls")
             }
         }
         .padding(.trailing, columnGap)
@@ -199,6 +260,7 @@ struct FoodTable: View {
         .font(.system(.subheadline, design: .rounded))
         .keyboardType(column.type == .number ? .decimalPad : .default)
         .foregroundStyle(.white)
+        .focused($focusedRowID, equals: row.id)
         .frame(width: width(for: column), alignment: .leading)
         .padding(.vertical, 12)
         .padding(.leading, columnGap)

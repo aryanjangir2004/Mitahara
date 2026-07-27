@@ -4,10 +4,18 @@
     "Localizable": [
       {
         "comment": "",
+        "key": "Cheat day",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 129
+        }
+      },
+      {
+        "comment": "",
         "key": "Done",
         "location": {
           "startingColumn": 42,
-          "startingLine": 88
+          "startingLine": 148
         }
       },
       {
@@ -15,7 +23,7 @@
         "key": "Edit",
         "location": {
           "startingColumn": 51,
-          "startingLine": 88
+          "startingLine": 148
         }
       },
       {
@@ -23,7 +31,7 @@
         "key": "#",
         "location": {
           "startingColumn": 18,
-          "startingLine": 102
+          "startingLine": 162
         }
       },
       {
@@ -31,7 +39,7 @@
         "key": "%lld",
         "location": {
           "startingColumn": 18,
-          "startingLine": 160
+          "startingLine": 221
         }
       },
       {
@@ -39,7 +47,7 @@
         "key": "Food",
         "location": {
           "startingColumn": 36,
-          "startingLine": 193
+          "startingLine": 254
         }
       },
       {
@@ -47,7 +55,7 @@
         "key": "0",
         "location": {
           "startingColumn": 45,
-          "startingLine": 193
+          "startingLine": 254
         }
       },
       {
@@ -55,7 +63,7 @@
         "key": "Add entry",
         "location": {
           "startingColumn": 22,
-          "startingLine": 215
+          "startingLine": 277
         }
       }
     ]

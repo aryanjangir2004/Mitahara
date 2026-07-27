@@ -108,6 +108,9 @@ struct AppData: Codable, Equatable {
     var centerColumnID: UUID?
     /// Missed days per calendar month that don't break the streak. nil = 0.
     var graceDaysPerMonth: Int?
+    /// Day keys the user explicitly marked as cheat days — they never break
+    /// the streak and never consume the monthly grace budget.
+    var cheatDays: [String]?
 
     static func seeded() -> AppData {
         var data = AppData()

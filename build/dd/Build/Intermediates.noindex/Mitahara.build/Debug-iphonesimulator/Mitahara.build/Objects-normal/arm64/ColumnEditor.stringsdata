@@ -7,7 +7,7 @@
         "key": "New Column",
         "location": {
           "startingColumn": 45,
-          "startingLine": 126
+          "startingLine": 138
         }
       },
       {
@@ -15,7 +15,7 @@
         "key": "Edit Column",
         "location": {
           "startingColumn": 60,
-          "startingLine": 126
+          "startingLine": 138
         }
       },
       {
@@ -23,7 +23,7 @@
         "key": "Delete \"%@\"? All its values will be removed.",
         "location": {
           "startingColumn": 17,
-          "startingLine": 146
+          "startingLine": 158
         }
       },
       {
@@ -31,7 +31,7 @@
         "key": "Column",
         "location": {
           "startingColumn": 25,
-          "startingLine": 55
+          "startingLine": 62
         }
       },
       {
@@ -39,7 +39,7 @@
         "key": "Ring color",
         "location": {
           "startingColumn": 29,
-          "startingLine": 92
+          "startingLine": 104
         }
       },
       {
@@ -47,7 +47,7 @@
         "key": "Name (e.g. Kcal, Protein)",
         "location": {
           "startingColumn": 31,
-          "startingLine": 56
+          "startingLine": 63
         }
       },
       {
@@ -55,7 +55,7 @@
         "key": "Type",
         "location": {
           "startingColumn": 28,
-          "startingLine": 57
+          "startingLine": 64
         }
       },
       {
@@ -63,7 +63,7 @@
         "key": "Counts toward successful day",
         "location": {
           "startingColumn": 32,
-          "startingLine": 83
+          "startingLine": 90
         }
       },
       {
@@ -71,7 +71,7 @@
         "key": "Min",
         "location": {
           "startingColumn": 34,
-          "startingLine": 68
+          "startingLine": 75
         }
       },
       {
@@ -79,7 +79,7 @@
         "key": "optional",
         "location": {
           "startingColumn": 39,
-          "startingLine": 70
+          "startingLine": 77
         }
       },
       {
@@ -87,7 +87,7 @@
         "key": "Max",
         "location": {
           "startingColumn": 34,
-          "startingLine": 76
+          "startingLine": 83
         }
       },
       {
@@ -95,7 +95,7 @@
         "key": "optional",
         "location": {
           "startingColumn": 39,
-          "startingLine": 78
+          "startingLine": 85
         }
       },
       {
@@ -103,7 +103,15 @@
         "key": "Daily goal",
         "location": {
           "startingColumn": 30,
-          "startingLine": 85
+          "startingLine": 92
+        }
+      },
+      {
+        "comment": "",
+        "key": "Min can't be larger than Max.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 95
         }
       },
       {
@@ -111,7 +119,7 @@
         "key": "Delete column",
         "location": {
           "startingColumn": 32,
-          "startingLine": 118
+          "startingLine": 130
         }
       },
       {
@@ -119,7 +127,7 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
-          "startingLine": 130
+          "startingLine": 142
         }
       },
       {
@@ -127,7 +135,7 @@
         "key": "Add",
         "location": {
           "startingColumn": 43,
-          "startingLine": 133
+          "startingLine": 145
         }
       },
       {
@@ -135,7 +143,7 @@
         "key": "Save",
         "location": {
           "startingColumn": 51,
-          "startingLine": 133
+          "startingLine": 145
         }
       },
       {
@@ -143,7 +151,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
-          "startingLine": 138
+          "startingLine": 150
         }
       },
       {
@@ -151,7 +159,7 @@
         "key": "Delete",
         "location": {
           "startingColumn": 24,
-          "startingLine": 150
+          "startingLine": 162
         }
       }
     ]

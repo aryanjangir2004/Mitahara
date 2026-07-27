@@ -1,0 +1,40 @@
+{
+  "source": "/Users/aryanjangir/Documents/New project/Mitahara/Mitahara/CheatOverlay.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Cheat Day",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "Relax — your streak is safe today.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 45
+        }
+      },
+      {
+        "comment": "",
+        "key": "Count calories anyway",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 55
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel cheat day",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 68
+        }
+      }
+    ]
+  },
+  "version": 1
+}

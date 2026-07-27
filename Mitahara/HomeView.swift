@@ -11,7 +11,25 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var appeared = false
     @AppStorage("didDismissHint") private var didDismissHint = false
+    @AppStorage("cheatOverlayDismissedDay") private var cheatOverlayDismissedDay = ""
     @Environment(\.scenePhase) private var scenePhase
+
+    /// The takeover only applies to today — browsing past cheat days just
+    /// shows the label.
+    private var showCheatOverlay: Bool {
+        cal.isDateInToday(selectedDate)
+            && store.isCheatDay(selectedDate)
+            && cheatOverlayDismissedDay != store.key(for: selectedDate)
+    }
+
+    /// Live scroll offset, kept in a reference type so per-frame updates
+    /// don't re-render the view.
+    private final class ScrollOffsetBox {
+        var y: CGFloat = 0
+    }
+
+    @State private var scrollPosition = ScrollPosition()
+    @State private var scrollOffset = ScrollOffsetBox()
 
     private var cal: Calendar { Calendar.current }
 
@@ -56,43 +74,74 @@ struct HomeView: View {
                     dateBar
                         .entrance(appeared, index: 1)
 
-                    RingGauge(
-                        columns: ringColumns,
-                        totals: totals,
-                        centerColumn: store.centerColumn?.resolved(on: store.key(for: selectedDate)),
-                        animateIn: appeared
-                    )
-                    .frame(height: 190)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 8)
-                    .entrance(appeared, index: 2)
-
-                    TotalsRow(date: selectedDate)
-                        .entrance(appeared, index: 3)
-
-                    if !didDismissHint {
-                        hintCard
-                            .padding(.horizontal, 16)
-                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    }
-
-                    FoodTable(
-                        date: selectedDate,
-                        onEditColumn: { editorTarget = ColumnEditorTarget(column: $0, isNew: false) },
-                        onAddColumn: {
-                            editorTarget = ColumnEditorTarget(
-                                column: ColumnDef(name: "", type: .number, colorHex: nextColorHex()),
-                                isNew: true
+                    if showCheatOverlay {
+                        CheatDayContent(
+                            onContinue: {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                                    cheatOverlayDismissedDay = store.key(for: selectedDate)
+                                }
+                            },
+                            onCancel: {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                                    store.toggleCheatDay(selectedDate)
+                                }
+                            }
+                        )
+                        .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                    } else {
+                        VStack(spacing: 18) {
+                            RingGauge(
+                                columns: ringColumns,
+                                totals: totals,
+                                centerColumn: store.centerColumn?.resolved(on: store.key(for: selectedDate)),
+                                animateIn: appeared
                             )
-                        },
-                        onArrange: { showArrange = true }
-                    )
-                    .padding(.horizontal, 16)
-                    .entrance(appeared, index: 4)
+                            .frame(height: 190)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 8)
+                            .entrance(appeared, index: 2)
+
+                            TotalsRow(date: selectedDate)
+                                .entrance(appeared, index: 3)
+
+                            if !didDismissHint {
+                                hintCard
+                                    .padding(.horizontal, 16)
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            }
+
+                            FoodTable(
+                                date: selectedDate,
+                                onEditColumn: { editorTarget = ColumnEditorTarget(column: $0, isNew: false) },
+                                onAddColumn: {
+                                    editorTarget = ColumnEditorTarget(
+                                        column: ColumnDef(name: "", type: .number, colorHex: nextColorHex()),
+                                        isNew: true
+                                    )
+                                },
+                                onArrange: { showArrange = true },
+                                onRowFocused: { frame in
+                                    guard let keyboardTop = KeyboardScroller.shared.currentKeyboardTop else { return }
+                                    let delta = frame.maxY + 24 - keyboardTop
+                                    guard delta > 0 else { return }
+                                    withAnimation(.easeOut(duration: 0.25)) {
+                                        scrollPosition.scrollTo(y: scrollOffset.y + delta)
+                                    }
+                                }
+                            )
+                            .padding(.horizontal, 16)
+                            .entrance(appeared, index: 4)
+                        }
+                        .transition(.opacity.combined(with: .scale(scale: 0.97)))
+                    }
 
                     Spacer(minLength: 40)
                 }
                 .padding(.top, 8)
+            }
+            .scrollPosition($scrollPosition)
+            .onScrollGeometryChange(for: CGFloat.self, of: { $0.contentOffset.y }) { _, new in
+                scrollOffset.y = new
             }
             .scrollDismissesKeyboard(.interactively)
         }
@@ -248,11 +297,19 @@ struct HomeView: View {
             }
             .buttonStyle(.glass)
 
-            Text(dateLabel)
-                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(minWidth: 110)
-                .contentTransition(.numericText())
+            VStack(spacing: 1) {
+                Text(dateLabel)
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
+                if store.isCheatDay(selectedDate) {
+                    Text("Cheat day")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.orange)
+                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                }
+            }
+            .frame(minWidth: 110)
 
             Button {
                 shiftDay(1)

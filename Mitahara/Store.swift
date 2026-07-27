@@ -123,6 +123,7 @@ final class Store: ObservableObject {
             result.columns = decode([ColumnDef].self, from: best.columnsData) ?? []
             result.centerColumnID = best.centerColumnID
             result.graceDaysPerMonth = best.graceDaysPerMonth
+            result.cheatDays = best.cheatDays
         }
         if result.columns.isEmpty {
             result.columns = AppData.seeded().columns
@@ -157,6 +158,7 @@ final class Store: ObservableObject {
         if settings.columnsData != encodedColumns { settings.columnsData = encodedColumns }
         if settings.centerColumnID != snapshot.centerColumnID { settings.centerColumnID = snapshot.centerColumnID }
         if settings.graceDaysPerMonth != snapshot.graceDaysPerMonth { settings.graceDaysPerMonth = snapshot.graceDaysPerMonth }
+        if settings.cheatDays != snapshot.cheatDays { settings.cheatDays = snapshot.cheatDays }
         for extra in settingsRecords.dropFirst() { context.delete(extra) }
 
         let dayRecords = (try? context.fetch(FetchDescriptor<DayRecord>())) ?? []
@@ -328,6 +330,25 @@ final class Store: ObservableObject {
         set { data.graceDaysPerMonth = newValue }
     }
 
+    // MARK: - Cheat days
+
+    var cheatDaySet: Set<String> { Set(data.cheatDays ?? []) }
+
+    func isCheatDay(_ date: Date) -> Bool {
+        cheatDaySet.contains(key(for: date))
+    }
+
+    func toggleCheatDay(_ date: Date) {
+        var set = cheatDaySet
+        let dayKey = key(for: date)
+        if set.contains(dayKey) {
+            set.remove(dayKey)
+        } else {
+            set.insert(dayKey)
+        }
+        data.cheatDays = set.isEmpty ? nil : set.sorted()
+    }
+
     func streakInfo(asOf today: Date = Date()) -> StreakInfo {
         let cal = Calendar.current
         var info = StreakInfo()
@@ -348,10 +369,14 @@ final class Store: ObservableObject {
         }
         day = cal.date(byAdding: .day, value: -1, to: day)!
 
+        let cheat = cheatDaySet
         while key(for: day) >= earliestLoggedKey {
             let dayKey = key(for: day)
             if isDaySuccessful(day) {
                 info.count += 1
+            } else if cheat.contains(dayKey) {
+                // Explicit cheat day — bridged for free, no budget consumed.
+                info.graceDays.insert(dayKey)
             } else {
                 let monthKey = String(dayKey.prefix(7))
                 if graceUsed[monthKey, default: 0] < budget {

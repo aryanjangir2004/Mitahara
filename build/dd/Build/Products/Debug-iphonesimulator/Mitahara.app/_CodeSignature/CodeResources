@@ -22,7 +22,7 @@
 		</data>
 		<key>Mitahara.debug.dylib</key>
 		<data>
-		C5ktNEIFHKwg2FGQBltRP4YNINs=
+		/9TCc0VJ3n31u3/TUnLOpDSaxk8=
 		</data>
 		<key>PkgInfo</key>
 		<data>
@@ -34,11 +34,11 @@
 		</data>
 		<key>PlugIns/KrecWidgets.appex/KrecWidgets</key>
 		<data>
-		5tRAA3xfG0pwICe4DBBitI6afeU=
+		hFpFVM034zOfa58ZKspeu5giAwo=
 		</data>
 		<key>PlugIns/KrecWidgets.appex/KrecWidgets.debug.dylib</key>
 		<data>
-		F2FeMTkbTcBEaOTpdDvgQjYyXA4=
+		rZ9cEiRHaSJ5h3xyWw3AMDIeTNY=
 		</data>
 		<key>PlugIns/KrecWidgets.appex/Metadata.appintents/extract.actionsdata</key>
 		<data>
@@ -46,11 +46,11 @@
 		</data>
 		<key>PlugIns/KrecWidgets.appex/Metadata.appintents/version.json</key>
 		<data>
-		eX845NZBkIpwlA6oT14P97sPaYE=
+		PFbTXKE++oaNDMAe6pe4WaYJGCA=
 		</data>
 		<key>PlugIns/KrecWidgets.appex/_CodeSignature/CodeResources</key>
 		<data>
-		gVS1QLVeMMcRwloWplIo6ScwDvM=
+		IeBcw18oLQGMS00C2MbyYJ2odpo=
 		</data>
 		<key>PlugIns/KrecWidgets.appex/__preview.dylib</key>
 		<data>
@@ -88,7 +88,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			rWHPHILjq8nGbcWUwDfJ8t0qrlj1O+9aGJ6mAXsY1Dk=
+			D4+qfUltD9d/tSwxrQDGq/bt40VtONvlnsOjJH93mvI=
 			</data>
 		</dict>
 		<key>PlugIns/KrecWidgets.appex/Info.plist</key>
@@ -102,14 +102,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			UpTdms3daBPL8o6I7qHPjrEnKfPUYHyiaMARD3aBLOo=
+			wvF9yrphOxn/5yG3sagBifU34W7dkDj7i1tIJAFbPFo=
 			</data>
 		</dict>
 		<key>PlugIns/KrecWidgets.appex/KrecWidgets.debug.dylib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			u09YlXqjKKxtHuAYDIYBmi71sI7UdWV1LDlCIUNL4Qk=
+			zo7+MYRF2i+WhVxI6KaNvHU/fzrMLa8m6vbbEDc8dCo=
 			</data>
 		</dict>
 		<key>PlugIns/KrecWidgets.appex/Metadata.appintents/extract.actionsdata</key>
@@ -123,14 +123,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			P7sdfoAmXiAQcQF3sPyVmNsG+gFrzxEnNkB8p2zt2yE=
+			bGEMLTRvWVvXxahROmLgL3ZVf6XYsEamPvgqyAHzT5M=
 			</data>
 		</dict>
 		<key>PlugIns/KrecWidgets.appex/_CodeSignature/CodeResources</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			iIVwzWyJ7QXhC41if7nYzzKuFQ8A1fU1o7+OWEdx9uk=
+			sJhzoSlY8blC7XcI/eIo6bevKwE770H1B8669sEHApU=
 			</data>
 		</dict>
 		<key>PlugIns/KrecWidgets.appex/__preview.dylib</key>

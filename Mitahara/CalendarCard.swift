@@ -80,7 +80,7 @@ struct CalendarCard: View {
 
             HStack(spacing: 14) {
                 legend(color: .green, text: "Goal hit")
-                if store.graceDaysPerMonth > 0 {
+                if store.graceDaysPerMonth > 0 || !store.cheatDaySet.isEmpty {
                     legend(color: .orange, text: "Grace")
                 }
                 legend(color: .white.opacity(0.25), text: "Missed")
@@ -102,7 +102,7 @@ struct CalendarCard: View {
     @ViewBuilder
     private func dayCell(_ day: Date, graceDays: Set<String>) -> some View {
         let success = store.isDaySuccessful(day)
-        let isGrace = !success && graceDays.contains(store.key(for: day))
+        let isGrace = !success && (graceDays.contains(store.key(for: day)) || store.isCheatDay(day))
         let isToday = cal.isDateInToday(day)
         let isSelected = cal.isDate(day, inSameDayAs: selectedDate)
         let isFuture = day > Date()

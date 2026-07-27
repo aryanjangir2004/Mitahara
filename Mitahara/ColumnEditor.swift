@@ -34,6 +34,13 @@ struct ColumnEditor: View {
         Double(text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: "."))
     }
 
+    private var rangeInvalid: Bool {
+        if type == .number, let lo = parse(minText), let hi = parse(maxText) {
+            return lo > hi
+        }
+        return false
+    }
+
     private var goalSummary: String {
         let lo = parse(minText)
         let hi = parse(maxText)
@@ -84,9 +91,14 @@ struct ColumnEditor: View {
                     } header: {
                         Text("Daily goal")
                     } footer: {
-                        Text(countsTowardSuccess
-                             ? goalSummary
-                             : "Just tracking — this column shows its ring and totals but never affects your streak or calendar, on any day.")
+                        if rangeInvalid {
+                            Text("Min can't be larger than Max.")
+                                .foregroundStyle(.red)
+                        } else {
+                            Text(countsTowardSuccess
+                                 ? goalSummary
+                                 : "Just tracking — this column shows its ring and totals but never affects your streak or calendar, on any day.")
+                        }
                     }
 
                     Section("Ring color") {
@@ -131,7 +143,7 @@ struct ColumnEditor: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(target.isNew ? "Add" : "Save") { save() }
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || rangeInvalid)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
