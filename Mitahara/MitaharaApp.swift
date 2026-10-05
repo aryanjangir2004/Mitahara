@@ -12,7 +12,7 @@ struct MitaharaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            RootTabView()
                 .environmentObject(store)
                 .preferredColorScheme(.dark)
         }

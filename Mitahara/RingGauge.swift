@@ -31,6 +31,10 @@ struct RingGauge: View {
     let totals: [UUID: Double]
     let centerColumn: ColumnDef?
     let animateIn: Bool
+    /// Number of columns the center can show, and which one it shows now —
+    /// drawn as page dots so tapping to switch is discoverable.
+    var centerChoices = 1
+    var centerIndex = 0
 
     private let strokeWidth: CGFloat = 16
     private let gap: CGFloat = 7
@@ -75,11 +79,31 @@ struct RingGauge: View {
         }
     }
 
+    /// How far the center column is from its target, e.g. "500 left".
+    private func remaining(for column: ColumnDef, total: Double) -> (text: String, color: Color)? {
+        switch (column.minGoal, column.maxGoal) {
+        case (nil, nil):
+            return nil
+        case let (lo?, nil):
+            return total >= lo
+                ? ("Target reached", .green)
+                : ("\((lo - total).compactString) to go", .secondary)
+        case let (lo, hi?):
+            if let lo, total < lo {
+                return ("\((lo - total).compactString) to go", .secondary)
+            }
+            return total <= hi
+                ? ("\((hi - total).compactString) left", .secondary)
+                : ("\((total - hi).compactString) over", Color(red: 1, green: 0.42, blue: 0.42))
+        }
+    }
+
     @ViewBuilder
     private var centerLabel: some View {
         if let column = centerColumn {
+            let total = totals[column.id] ?? 0
             VStack(spacing: 2) {
-                Text((totals[column.id] ?? 0).compactString)
+                Text(total.compactString)
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.white)
@@ -89,6 +113,24 @@ struct RingGauge: View {
                 Text(column.name)
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(column.color)
+                if let remaining = remaining(for: column, total: total) {
+                    Text(remaining.text)
+                        .font(.system(.caption, design: .rounded).weight(.medium))
+                        .monospacedDigit()
+                        .foregroundStyle(remaining.color)
+                        .contentTransition(.numericText())
+                }
+                if centerChoices > 1 {
+                    HStack(spacing: 5) {
+                        ForEach(0..<centerChoices, id: \.self) { i in
+                            Circle()
+                                .fill(Color.white.opacity(i == centerIndex ? 0.8 : 0.22))
+                                .frame(width: 5, height: 5)
+                        }
+                    }
+                    .padding(.top, 4)
+                    .accessibilityHidden(true)
+                }
             }
         } else {
             Text("Add a number column")

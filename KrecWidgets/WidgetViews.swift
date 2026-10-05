@@ -17,6 +17,40 @@ struct KrecWidgetView: View {
     }
 }
 
+// MARK: - Medal helpers
+
+extension ColumnsEntry {
+    /// Whether the day has anything medal-worthy to show at all.
+    var showsMedal: Bool {
+        isCheatDay || tier != .unrated
+    }
+
+    /// The widget always grades today, which is still running — so an
+    /// unmet day reads as a neutral "no medal yet", not a red miss (same
+    /// as the app's top-bar chip).
+    var medalSymbol: String {
+        if isCheatDay { return "star.fill" }
+        return tier == .missed ? "medal" : tier.symbol
+    }
+
+    var medalColor: Color {
+        if isCheatDay { return .orange }
+        return tier == .missed ? .white.opacity(0.45) : tier.color
+    }
+
+    var medalTitle: String {
+        if isCheatDay { return "Cheat day" }
+        switch tier {
+        case .gold: return "Gold day"
+        case .silver: return "Silver day"
+        case .bronze: return "Bronze day"
+        case .semiGrace: return "Semi-grace"
+        case .missed: return "No medal yet"
+        case .unrated: return "Open day"
+        }
+    }
+}
+
 // MARK: - Shared arc shape
 
 struct WidgetArcShape: Shape {
@@ -102,6 +136,13 @@ struct SmallRingsView: View {
                 Spacer(minLength: 0)
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .overlay(alignment: .topTrailing) {
+                if entry.showsMedal {
+                    Image(systemName: entry.medalSymbol)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(entry.medalColor)
+                }
+            }
         }
     }
 }
@@ -112,6 +153,27 @@ struct MediumLinesView: View {
     let entry: ColumnsEntry
 
     var body: some View {
+        HStack(spacing: 14) {
+            linesStack
+
+            if entry.showsMedal || entry.goalsTotal > 0 {
+                VStack(spacing: 3) {
+                    Image(systemName: entry.medalSymbol)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(entry.medalColor)
+                    if entry.goalsTotal > 0 {
+                        Text("\(entry.goalsDone)/\(entry.goalsTotal)")
+                            .font(.system(.caption2, design: .rounded).weight(.bold))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(width: 36)
+            }
+        }
+    }
+
+    private var linesStack: some View {
         VStack(spacing: 12) {
             ForEach(entry.columns.prefix(3)) { column in
                 HStack(spacing: 10) {
@@ -158,7 +220,25 @@ struct LargeGaugeView: View {
     }
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
+            if entry.showsMedal || entry.goalsTotal > 0 {
+                HStack(spacing: 7) {
+                    Image(systemName: entry.medalSymbol)
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(entry.medalColor)
+                    Text(entry.medalTitle)
+                        .font(.system(.footnote, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    if entry.goalsTotal > 0 {
+                        Text("\(entry.goalsDone)/\(entry.goalsTotal) goals")
+                            .font(.system(.caption, design: .rounded).weight(.semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             ZStack(alignment: .bottom) {
                 RingsStack(columns: ringColumns, strokeWidth: 11, gap: 5)
                 if let center = entry.center {
@@ -196,7 +276,9 @@ struct LargeGaugeView: View {
                             .font(.system(.callout, design: .rounded).weight(.bold))
                             .monospacedDigit()
                             .foregroundStyle(.white)
-                        if let met = column.def.isMet(total: column.total) {
+                        if let met = (column.def.hasGoal && column.def.countsInSuccess)
+                            ? (entry.hasTrackedActivity && column.def.isMet(total: column.total) == true)
+                            : nil {
                             Image(systemName: met ? "checkmark.circle.fill" : "circle.dashed")
                                 .font(.caption)
                                 .foregroundStyle(met ? .green : .secondary)

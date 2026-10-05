@@ -102,6 +102,145 @@ struct EntryRow: Identifiable, Codable, Equatable {
     }
 }
 
+// MARK: - Daily goals
+
+enum GoalScheduleKind: String, Codable, CaseIterable, Identifiable {
+    case daily
+    case weekly
+    case oneTime
+
+    var id: String { rawValue }
+}
+
+/// Describes when a goal creates an occurrence. Weekdays use Foundation's
+/// Calendar values (Sunday = 1 ... Saturday = 7), which keeps schedules
+/// correct when the user's first weekday changes.
+struct GoalSchedule: Codable, Equatable {
+    var kind: GoalScheduleKind
+    var weekdays: [Int] = []
+    var dateKey: String?
+
+    static var daily: GoalSchedule {
+        GoalSchedule(kind: .daily)
+    }
+
+    static func weekly(_ weekdays: [Int]) -> GoalSchedule {
+        GoalSchedule(kind: .weekly, weekdays: Array(Set(weekdays)).sorted())
+    }
+
+    static func oneTime(on dayKey: String) -> GoalSchedule {
+        GoalSchedule(kind: .oneTime, dateKey: dayKey)
+    }
+
+    func occurs(on dayKey: String, createdOn: String, endsBefore: String? = nil) -> Bool {
+        guard dayKey >= createdOn else { return false }
+        if let endsBefore, dayKey >= endsBefore { return false }
+        switch kind {
+        case .daily:
+            return true
+        case .weekly:
+            guard let date = DayKey.date(from: dayKey) else { return false }
+            return weekdays.contains(Calendar.current.component(.weekday, from: date))
+        case .oneTime:
+            return dateKey == dayKey
+        }
+    }
+}
+
+struct GoalDefinition: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var title: String
+    var schedule: GoalSchedule
+    var createdOn: String
+    /// Exclusive end date for a repeating schedule. This retires a series
+    /// without rewriting its earlier occurrences and day results.
+    var endsBefore: String?
+    /// When false the goal is still scheduled and tracked, but it is omitted
+    /// from the day's medal and streak calculation.
+    var impactsDaySuccess: Bool = true
+    /// Goal definitions may be retired on another device; latest edit wins.
+    var updatedAt: Date? = Date()
+}
+
+enum GoalOccurrenceStatus: String, Codable, Equatable {
+    case pending
+    case completed
+    case cancelled
+}
+
+/// Created only after an occurrence is completed, cancelled or moved. The
+/// source day stays stable while displayDay changes when the user defers it.
+struct GoalOccurrenceOverride: Codable, Equatable {
+    var goalID: UUID
+    var sourceDay: String
+    var displayDay: String
+    var status: GoalOccurrenceStatus
+    /// Used to resolve the same occurrence being changed on two devices.
+    /// Optional keeps snapshots from early builds decodable.
+    var updatedAt: Date?
+}
+
+/// A materialized goal for one day. Its id is stable across deferrals so a
+/// moved goal remains the same piece of work rather than becoming a copy.
+struct GoalOccurrence: Identifiable, Equatable {
+    var id: String
+    var goal: GoalDefinition
+    var sourceDay: String
+    var displayDay: String
+    var status: GoalOccurrenceStatus
+
+    var wasDeferred: Bool { sourceDay != displayDay }
+}
+
+enum DayTier: String, Equatable {
+    case gold
+    case silver
+    case bronze
+    case semiGrace
+    case missed
+    case unrated
+
+    var countsAsSuccess: Bool {
+        self == .gold || self == .silver || self == .bronze
+    }
+
+    /// Single source of truth for tier colors, shared by the calendar,
+    /// settings, the Goals page, the Log tab chip and the widgets.
+    var color: Color {
+        switch self {
+        case .gold: return Color(red: 1.00, green: 0.78, blue: 0.16)
+        case .silver: return Color(red: 0.78, green: 0.82, blue: 0.88)
+        case .bronze: return Color(red: 0.80, green: 0.48, blue: 0.24)
+        case .semiGrace: return Color(red: 0.38, green: 0.82, blue: 0.84)
+        case .missed: return Color(red: 1.00, green: 0.35, blue: 0.35)
+        case .unrated: return Color.white.opacity(0.35)
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .gold, .silver, .bronze: return "medal.fill"
+        case .semiGrace: return "leaf.fill"
+        case .missed: return "circle.dashed"
+        case .unrated: return "sparkles"
+        }
+    }
+}
+
+extension Color {
+    /// Calendar fill for days bridged by the monthly grace budget. Distinct
+    /// from orange, which belongs to cheat days.
+    static let dayGrace = Color(red: 0.56, green: 0.62, blue: 1.0)
+}
+
+struct DayAssessment: Equatable {
+    var tier: DayTier
+    var met: Int
+    var unmet: Int
+
+    var total: Int { met + unmet }
+}
+
 struct AppData: Codable, Equatable {
     var columns: [ColumnDef] = []
     var days: [String: [EntryRow]] = [:]
@@ -111,6 +250,12 @@ struct AppData: Codable, Equatable {
     /// Day keys the user explicitly marked as cheat days — they never break
     /// the streak and never consume the monthly grace budget.
     var cheatDays: [String]?
+    /// Prevents the seeded nutrition goal from rating dates before the user
+    /// began using the app. Optional for older snapshots.
+    var trackingStartedOn: String?
+    /// Optional for decoding snapshots written before the Goals page existed.
+    var goals: [GoalDefinition]?
+    var goalOverrides: [String: GoalOccurrenceOverride]?
 
     static func seeded() -> AppData {
         var data = AppData()
@@ -118,6 +263,7 @@ struct AppData: Codable, Equatable {
         let kcal = ColumnDef(name: "Kcal", type: .number, minGoal: nil, maxGoal: 2000, colorHex: "FF9F0A")
         data.columns = [name, kcal]
         data.centerColumnID = kcal.id
+        data.trackingStartedOn = DayKey.key(for: Date())
         return data
     }
 }
@@ -132,6 +278,10 @@ enum DayKey {
 
     static func key(for date: Date) -> String {
         formatter.string(from: date)
+    }
+
+    static func date(from key: String) -> Date? {
+        formatter.date(from: key)
     }
 }
 
@@ -149,6 +299,135 @@ extension AppData {
             .compactMap { Double(($0.values[column.id] ?? "").replacingOccurrences(of: ",", with: ".")) }
             .reduce(0, +)
     }
+
+    /// Materializes scheduled and deferred work for a day. Pure so the widget
+    /// process can evaluate a day exactly like the app; `deferredIn` lets the
+    /// app inject its cached display-day index instead of rescanning.
+    func goalOccurrences(
+        on dayKey: String,
+        deferredIn: [String: GoalOccurrenceOverride]? = nil
+    ) -> [GoalOccurrence] {
+        let goals = goals ?? []
+        let overrides = goalOverrides ?? [:]
+        var result: [GoalOccurrence] = []
+
+        for goal in goals where goal.schedule.occurs(
+            on: dayKey,
+            createdOn: goal.createdOn,
+            endsBefore: goal.endsBefore
+        ) {
+            let id = "\(goal.id.uuidString)|\(dayKey)"
+            if let override = overrides[id] {
+                guard override.displayDay == dayKey else { continue }
+                result.append(GoalOccurrence(
+                    id: id,
+                    goal: goal,
+                    sourceDay: override.sourceDay,
+                    displayDay: override.displayDay,
+                    status: override.status
+                ))
+            } else {
+                result.append(GoalOccurrence(
+                    id: id,
+                    goal: goal,
+                    sourceDay: dayKey,
+                    displayDay: dayKey,
+                    status: .pending
+                ))
+            }
+        }
+
+        // Occurrences moved here from an earlier day are not produced by the
+        // normal schedule lookup above, so append them explicitly.
+        let movedIn = deferredIn ?? overrides.filter { $0.value.displayDay == dayKey }
+        for (id, override) in movedIn
+            where override.displayDay == dayKey && override.sourceDay != dayKey {
+            guard let goal = goals.first(where: { $0.id == override.goalID }) else { continue }
+            result.append(GoalOccurrence(
+                id: id,
+                goal: goal,
+                sourceDay: override.sourceDay,
+                displayDay: override.displayDay,
+                status: override.status
+            ))
+        }
+
+        let order = Dictionary(uniqueKeysWithValues: goals.enumerated().map { ($0.element.id, $0.offset) })
+        return result.sorted {
+            let lhs = order[$0.goal.id] ?? .max
+            let rhs = order[$1.goal.id] ?? .max
+            return lhs == rhs ? $0.sourceDay < $1.sourceDay : lhs < rhs
+        }
+    }
+
+    /// True when the user did anything trackable that day — logged food or
+    /// completed a goal. Days without activity can never earn a medal.
+    func hasTrackedActivity(on date: Date, occurrences: [GoalOccurrence]? = nil) -> Bool {
+        if rows(on: date).contains(where: { !$0.isBlank }) { return true }
+        let dayKey = DayKey.key(for: date)
+        return (occurrences ?? goalOccurrences(on: dayKey)).contains { $0.status == .completed }
+    }
+
+    /// Combines nutrition targets and scheduled goals into the day's medal.
+    ///
+    /// Grading is proportional with absolute allowances for small sets, and
+    /// holds two invariants: a day where nothing was met is never a success,
+    /// and meeting more requirements can never produce a worse tier.
+    /// - gold: everything met
+    /// - silver: at most 1 missed, or 75%+ met
+    /// - bronze: at most 2 missed, or 60%+ met
+    /// - semi-grace: anything met at all
+    /// Future days, days before tracking began, and cheat days are unrated.
+    func dayAssessment(on date: Date, occurrences: [GoalOccurrence]? = nil) -> DayAssessment {
+        let dayKey = DayKey.key(for: date)
+        let todayKey = DayKey.key(for: Date())
+        if dayKey > todayKey {
+            return DayAssessment(tier: .unrated, met: 0, unmet: 0)
+        }
+        if let trackingStartedOn, dayKey < trackingStartedOn {
+            return DayAssessment(tier: .unrated, met: 0, unmet: 0)
+        }
+        // A declared cheat day is off the books entirely.
+        if (cheatDays ?? []).contains(dayKey) {
+            return DayAssessment(tier: .unrated, met: 0, unmet: 0)
+        }
+
+        let nutritionGoals = numericColumns
+            .filter(\.countsInSuccess)
+            .map { $0.resolved(on: dayKey) }
+            .filter(\.hasGoal)
+        let allOccurrences = occurrences ?? goalOccurrences(on: dayKey)
+        let scheduledGoals = allOccurrences.filter {
+            $0.goal.impactsDaySuccess && $0.status != .cancelled
+        }
+
+        // Targets are evaluated against actual totals — a max-only target is
+        // legitimately met at zero, so gold stays reachable on goal-only days.
+        var met = nutritionGoals.filter { $0.isMet(total: total(of: $0, on: date)) == true }.count
+        var unmet = nutritionGoals.count - met
+        met += scheduledGoals.filter { $0.status == .completed }.count
+        unmet += scheduledGoals.filter { $0.status != .completed }.count
+
+        guard met + unmet > 0 else {
+            return DayAssessment(tier: .unrated, met: 0, unmet: 0)
+        }
+        guard hasTrackedActivity(on: date, occurrences: allOccurrences), met > 0 else {
+            return DayAssessment(tier: .missed, met: met, unmet: unmet)
+        }
+
+        let ratio = Double(met) / Double(met + unmet)
+        let tier: DayTier
+        if unmet == 0 {
+            tier = .gold
+        } else if unmet == 1 || ratio >= 0.75 {
+            tier = .silver
+        } else if unmet == 2 || ratio >= 0.6 {
+            tier = .bronze
+        } else {
+            tier = .semiGrace
+        }
+        return DayAssessment(tier: tier, met: met, unmet: unmet)
+    }
 }
 
 /// The app writes its full data set to the shared App Group container so the
@@ -163,6 +442,8 @@ enum SharedSnapshot {
     }
 
     static func write(_ data: AppData) {
+        // Widgets evaluate the day exactly like the app, so the snapshot
+        // carries goals and occurrence overrides too.
         guard let url, let encoded = try? JSONEncoder().encode(data) else { return }
         try? encoded.write(to: url, options: .atomic)
     }

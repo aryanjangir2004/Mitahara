@@ -60,6 +60,11 @@ struct ColumnsEntry: TimelineEntry {
     let date: Date
     let columns: [WidgetColumn]
     let centerID: UUID?
+    let hasTrackedActivity: Bool
+    let tier: DayTier
+    let isCheatDay: Bool
+    let goalsDone: Int
+    let goalsTotal: Int
 
     var center: WidgetColumn? {
         columns.first { $0.id == centerID } ?? columns.first
@@ -74,7 +79,12 @@ struct ColumnsEntry: TimelineEntry {
                 WidgetColumn(def: kcal, total: 1450),
                 WidgetColumn(def: protein, total: 82),
             ],
-            centerID: kcal.id
+            centerID: kcal.id,
+            hasTrackedActivity: true,
+            tier: .silver,
+            isCheatDay: false,
+            goalsDone: 2,
+            goalsTotal: 3
         )
     }
 }
@@ -99,7 +109,20 @@ struct Provider: AppIntentTimelineProvider {
         let centerID = configuration.center.flatMap { entity in
             columns.first { $0.id == entity.id }?.id
         }
-        return ColumnsEntry(date: now, columns: columns, centerID: centerID)
+        // Evaluate the day exactly like the app does.
+        let occurrences = snapshot.goalOccurrences(on: dayKey)
+        let activeGoals = occurrences.filter { $0.status != .cancelled }
+        let assessment = snapshot.dayAssessment(on: now, occurrences: occurrences)
+        return ColumnsEntry(
+            date: now,
+            columns: columns,
+            centerID: centerID,
+            hasTrackedActivity: snapshot.hasTrackedActivity(on: now, occurrences: occurrences),
+            tier: assessment.tier,
+            isCheatDay: (snapshot.cheatDays ?? []).contains(dayKey),
+            goalsDone: activeGoals.filter { $0.status == .completed }.count,
+            goalsTotal: activeGoals.count
+        )
     }
 
     func placeholder(in context: Context) -> ColumnsEntry {
