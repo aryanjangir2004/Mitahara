@@ -96,6 +96,11 @@ struct HomeView: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.94)))
                     } else {
                         VStack(spacing: 18) {
+                            if store.isRestoringFromCloud {
+                                restoringBanner
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            }
+
                             RingGauge(
                                 columns: ringColumns,
                                 totals: totals,
@@ -239,6 +244,22 @@ struct HomeView: View {
             }
         }
         trackedToday = newToday
+    }
+
+    /// Shown after a fresh install while iCloud data downloads, so an empty
+    /// log doesn't read as "everything is gone".
+    private var restoringBanner: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+            Text("Restoring your data from iCloud…")
+                .font(.system(.footnote, design: .rounded).weight(.semibold))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .glassEffect(.regular, in: .capsule)
+        .animation(.snappy, value: store.isRestoringFromCloud)
     }
 
     private var hintCard: some View {

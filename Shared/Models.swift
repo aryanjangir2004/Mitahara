@@ -257,10 +257,17 @@ struct AppData: Codable, Equatable {
     var goals: [GoalDefinition]?
     var goalOverrides: [String: GoalOccurrenceOverride]?
 
+    /// Fixed ids for the starter columns. A fresh install shows these
+    /// before any settings exist, and stable ids keep rows typed against
+    /// them readable across launches and mappable onto the real columns
+    /// once those arrive from iCloud.
+    static let seedNameColumnID = UUID(uuidString: "6B7E1A52-5EED-4C01-8000-000000000001")!
+    static let seedKcalColumnID = UUID(uuidString: "6B7E1A52-5EED-4C01-8000-000000000002")!
+
     static func seeded() -> AppData {
         var data = AppData()
-        let name = ColumnDef(name: "Name", type: .text)
-        let kcal = ColumnDef(name: "Kcal", type: .number, minGoal: nil, maxGoal: 2000, colorHex: "FF9F0A")
+        let name = ColumnDef(id: seedNameColumnID, name: "Name", type: .text)
+        let kcal = ColumnDef(id: seedKcalColumnID, name: "Kcal", type: .number, minGoal: nil, maxGoal: 2000, colorHex: "FF9F0A")
         data.columns = [name, kcal]
         data.centerColumnID = kcal.id
         data.trackingStartedOn = DayKey.key(for: Date())

@@ -17,6 +17,31 @@ struct SettingsSheet: View {
         NavigationStack {
             Form {
                 Section {
+                    HStack {
+                        Label {
+                            Text("iCloud backup")
+                        } icon: {
+                            Image(systemName: store.isCloudSyncEnabled ? "icloud.fill" : "icloud.slash")
+                                .foregroundStyle(store.isCloudSyncEnabled ? Color.accentColor : .secondary)
+                        }
+                        Spacer()
+                        syncStatus
+                            .foregroundStyle(.secondary)
+                    }
+                    if let problem = store.cloudSyncProblem {
+                        Label(problem, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                } header: {
+                    Text("Backup")
+                } footer: {
+                    Text(store.isCloudSyncEnabled
+                         ? "Your log, columns and goals sync to your private iCloud, so reinstalling Krec or setting up a new iPhone brings them back. After a reinstall, give it a minute to restore."
+                         : "iCloud isn't available, so your data is stored only on this iPhone and is lost if you delete the app. Sign in to iCloud in the Settings app (with iCloud Drive turned on), then reopen Krec.")
+                }
+
+                Section {
                     Stepper(
                         value: Binding(
                             get: { store.graceDaysPerMonth },
@@ -96,6 +121,21 @@ struct SettingsSheet: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder
+    private var syncStatus: some View {
+        if !store.isCloudSyncEnabled {
+            Text("Off")
+        } else if store.isRestoringFromCloud {
+            Text("Restoring…")
+        } else if store.cloudSyncProblem != nil {
+            Text("Not syncing")
+        } else if let last = store.lastCloudSync {
+            Text("Synced \(last, format: .relative(presentation: .named))")
+        } else {
+            Text("On")
+        }
     }
 
     private func resultRow(color: Color, name: String, detail: String) -> some View {

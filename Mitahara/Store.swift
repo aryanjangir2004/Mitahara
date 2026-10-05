@@ -15,6 +15,22 @@ final class Store: ObservableObject {
     }
 
     private let container: ModelContainer?
+    /// Whether the store mirrors to the private iCloud database. Off when
+    /// no iCloud identity was available at launch (see `makeContainer`).
+    let isCloudSyncEnabled: Bool
+    /// When the last iCloud import/export finished successfully.
+    @Published private(set) var lastCloudSync: Date?
+    /// The most recent iCloud sync failure, cleared by the next success.
+    @Published private(set) var cloudSyncProblem: String?
+    /// True after a fresh install with iCloud on, until the first import
+    /// finishes — the UI says data is being restored instead of looking
+    /// empty for good.
+    @Published private(set) var isRestoringFromCloud = false
+    /// Day keys emptied on this device since the last save. Only these are
+    /// deleted from the store: a day missing from a (possibly stale)
+    /// snapshot may simply not have been imported from iCloud yet.
+    private var locallyDeletedDayKeys: Set<String> = []
+    private var cloudEventObserver: NSObjectProtocol?
     private var isApplyingRemote = false
     private var hasPendingSave = false
     private var saveTask: Task<Void, Never>?
@@ -61,19 +77,51 @@ final class Store: ObservableObject {
     }
 
     init() {
-        container = Self.makeContainer()
+        let (container, cloudEnabled) = Self.makeContainer()
+        self.container = container
+        isCloudSyncEnabled = cloudEnabled
         data = AppData()
         isApplyingRemote = true
         migrateLegacyJSONIfNeeded()
         if let stored = loadFromStore() {
             data = stored
+            isApplyingRemote = false
+            // Also writes inferred migration defaults (such as tracking start)
+            // back into stores created by earlier app versions.
+            persist(data)
         } else {
+            // Fresh install: show the starter columns but don't save them.
+            // `persist` keeps them out of the store until the user changes
+            // them, so they can't compete with real settings still on their
+            // way down from iCloud.
             data = AppData.seeded()
+            isApplyingRemote = false
+            if cloudEnabled {
+                isRestoringFromCloud = true
+                // Never leave the "restoring" note up if no import event
+                // ever arrives (offline, iCloud slow to respond).
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(nanoseconds: 45_000_000_000)
+                    self?.isRestoringFromCloud = false
+                }
+            }
         }
-        isApplyingRemote = false
-        // Also writes inferred migration defaults (such as tracking start)
-        // back into stores created by earlier app versions.
-        persist(data)
+
+        cloudEventObserver = NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let event = note.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey]
+                    as? NSPersistentCloudKitContainer.Event,
+                  let endDate = event.endDate else { return }
+            let succeeded = event.succeeded
+            let isImport = event.type == .import
+            let problem = event.error.map { ($0 as NSError).localizedDescription }
+            MainActor.assumeIsolated {
+                self?.handleCloudEvent(succeeded: succeeded, isImport: isImport, endDate: endDate, problem: problem)
+            }
+        }
 
         // CloudKit imports land in the underlying store and post remote-change
         // notifications; refresh our snapshot when that happens.
@@ -92,11 +140,27 @@ final class Store: ObservableObject {
         if let remoteObserver {
             NotificationCenter.default.removeObserver(remoteObserver)
         }
+        if let cloudEventObserver {
+            NotificationCenter.default.removeObserver(cloudEventObserver)
+        }
+    }
+
+    private func handleCloudEvent(succeeded: Bool, isImport: Bool, endDate: Date, problem: String?) {
+        if succeeded {
+            lastCloudSync = endDate
+            cloudSyncProblem = nil
+        } else {
+            cloudSyncProblem = problem ?? "iCloud sync failed."
+        }
+        if isImport, isRestoringFromCloud {
+            isRestoringFromCloud = false
+            refreshFromCloud()
+        }
     }
 
     // MARK: - SwiftData / CloudKit plumbing
 
-    private static func makeContainer() -> ModelContainer? {
+    private static func makeContainer() -> (ModelContainer?, cloudEnabled: Bool) {
         let schema = Schema([
             DayRecord.self,
             SettingsRecord.self,
@@ -111,16 +175,25 @@ final class Store: ObservableObject {
         if FileManager.default.ubiquityIdentityToken != nil {
             let cloud = ModelConfiguration(schema: schema, cloudKitDatabase: .private(cloudContainerID))
             if let container = try? ModelContainer(for: schema, configurations: [cloud]) {
-                return container
+                return (container, true)
             }
         }
         let local = ModelConfiguration(schema: schema, cloudKitDatabase: .none)
         do {
-            return try ModelContainer(for: schema, configurations: [local])
+            return (try ModelContainer(for: schema, configurations: [local]), false)
         } catch {
             assertionFailure("Unable to open the local SwiftData store: \(error)")
-            return nil
+            return (nil, false)
         }
+    }
+
+    /// True when the settings are still exactly the fresh-install starters.
+    private static func hasStarterSettings(_ snapshot: AppData) -> Bool {
+        let seed = AppData.seeded()
+        return snapshot.columns == seed.columns
+            && snapshot.centerColumnID == seed.centerColumnID
+            && (snapshot.graceDaysPerMonth ?? 0) == 0
+            && (snapshot.cheatDays ?? []).isEmpty
     }
 
     private func decode<T: Decodable>(_ type: T.Type, from data: Data) -> T? {
@@ -215,13 +288,29 @@ final class Store: ObservableObject {
 
         var result = AppData()
 
-        // CloudKit sync can leave duplicate settings records (fresh install +
-        // remote copy). Prefer the one with the richest column set.
-        let best = settingsRecords.max { lhs, rhs in
-            let l = decode([ColumnDef].self, from: lhs.columnsData)?.count ?? 0
-            let r = decode([ColumnDef].self, from: rhs.columnsData)?.count ?? 0
-            return l < r
+        // Decode each day's rows once; they also decide between duplicate
+        // settings records just below.
+        let decodedRows = dayRecords.map { decode([EntryRow].self, from: $0.rowsData) ?? [] }
+        var columnUsage: [UUID: Int] = [:]
+        for rows in decodedRows {
+            for row in rows {
+                for (columnID, value) in row.values
+                where !value.trimmingCharacters(in: .whitespaces).isEmpty {
+                    columnUsage[columnID, default: 0] += 1
+                }
+            }
         }
+
+        // CloudKit sync can leave duplicate settings records (a fresh
+        // install's copy + the one restored from iCloud). Prefer the columns
+        // the logged entries actually use, then the richest column set.
+        // Counting columns alone let fresh starter columns win a tie, which
+        // hid every past entry (their values are keyed by column id).
+        func rank(_ record: SettingsRecord) -> (Int, Int) {
+            let columns = decode([ColumnDef].self, from: record.columnsData) ?? []
+            return (columns.reduce(0) { $0 + (columnUsage[$1.id] ?? 0) }, columns.count)
+        }
+        let best = settingsRecords.max { rank($0) < rank($1) }
         if let best {
             result.columns = decode([ColumnDef].self, from: best.columnsData) ?? []
             result.centerColumnID = best.centerColumnID
@@ -319,8 +408,7 @@ final class Store: ObservableObject {
         // Duplicate day records still merge food rows by id. Their legacy
         // occurrence blobs are candidates alongside the granular records.
         var occurrenceCandidates: [String: OccurrencePersistenceCandidate] = [:]
-        for record in dayRecords {
-            let rows = decode([EntryRow].self, from: record.rowsData) ?? []
+        for (record, rows) in zip(dayRecords, decodedRows) {
             if !rows.isEmpty {
                 if var existing = result.days[record.dateKey] {
                     let seen = Set(existing.map(\.id))
@@ -398,6 +486,32 @@ final class Store: ObservableObject {
             }
         }
 
+        // Rows typed against the starter columns before the real settings
+        // arrived from iCloud: move their values onto the matching real
+        // column (same name and type) so they don't silently disappear.
+        let liveColumnIDs = Set(result.columns.map(\.id))
+        var seedRemap: [UUID: UUID] = [:]
+        for seed in AppData.seeded().columns
+        where !liveColumnIDs.contains(seed.id) && columnUsage[seed.id] != nil {
+            if let match = result.columns.first(where: {
+                $0.type == seed.type && $0.name.caseInsensitiveCompare(seed.name) == .orderedSame
+            }) {
+                seedRemap[seed.id] = match.id
+            }
+        }
+        if !seedRemap.isEmpty {
+            for (key, rows) in result.days {
+                result.days[key] = rows.map { row in
+                    var row = row
+                    for (from, to) in seedRemap {
+                        guard let value = row.values.removeValue(forKey: from) else { continue }
+                        if (row.values[to] ?? "").isEmpty { row.values[to] = value }
+                    }
+                    return row
+                }
+            }
+        }
+
         // Overrides for goals that no longer exist (deleted on any device)
         // would otherwise accumulate forever.
         let liveGoalIDs = Set(mergedGoals.map(\.id))
@@ -426,30 +540,44 @@ final class Store: ObservableObject {
         guard let context = container?.mainContext else { return }
 
         let settingsRecords = (try? context.fetch(FetchDescriptor<SettingsRecord>())) ?? []
-        let settings = settingsRecords.first ?? {
-            let record = SettingsRecord()
-            context.insert(record)
-            return record
-        }()
-        let encodedColumns = encode(snapshot.columns)
-        // Duplicate physical settings records may each carry a different
-        // legacy goals blob. Keep those blobs available for migration, while
-        // normalizing every other field so a refresh cannot resurrect stale
-        // columns or settings from one of the retained records.
-        let settingsToNormalize = settingsRecords.isEmpty ? [settings] : settingsRecords
-        for settings in settingsToNormalize {
-            if settings.columnsData != encodedColumns { settings.columnsData = encodedColumns }
-            if settings.centerColumnID != snapshot.centerColumnID {
-                settings.centerColumnID = snapshot.centerColumnID
-            }
-            if settings.graceDaysPerMonth != snapshot.graceDaysPerMonth {
-                settings.graceDaysPerMonth = snapshot.graceDaysPerMonth
-            }
-            if settings.cheatDays != snapshot.cheatDays { settings.cheatDays = snapshot.cheatDays }
-            if settings.trackingStartedOn != snapshot.trackingStartedOn {
-                settings.trackingStartedOn = snapshot.trackingStartedOn
+        // Untouched starter settings never get written over nothing or over
+        // real columns: on a fresh install they'd compete with the settings
+        // still being restored from iCloud, and a save that was pending when
+        // those arrived would overwrite them. The starter columns have fixed
+        // ids, so rows saved against them stay readable either way.
+        let starterColumns = AppData.seeded().columns
+        let storeHasRealColumns = settingsRecords.contains {
+            (decode([ColumnDef].self, from: $0.columnsData) ?? []) != starterColumns
+        }
+        let skipStarterWrite = Self.hasStarterSettings(snapshot)
+            && (settingsRecords.isEmpty || storeHasRealColumns)
+        if !skipStarterWrite {
+            let settings = settingsRecords.first ?? {
+                let record = SettingsRecord()
+                context.insert(record)
+                return record
+            }()
+            let encodedColumns = encode(snapshot.columns)
+            // Duplicate physical settings records may each carry a different
+            // legacy goals blob. Keep those blobs available for migration, while
+            // normalizing every other field so a refresh cannot resurrect stale
+            // columns or settings from one of the retained records.
+            let settingsToNormalize = settingsRecords.isEmpty ? [settings] : settingsRecords
+            for settings in settingsToNormalize {
+                if settings.columnsData != encodedColumns { settings.columnsData = encodedColumns }
+                if settings.centerColumnID != snapshot.centerColumnID {
+                    settings.centerColumnID = snapshot.centerColumnID
+                }
+                if settings.graceDaysPerMonth != snapshot.graceDaysPerMonth {
+                    settings.graceDaysPerMonth = snapshot.graceDaysPerMonth
+                }
+                if settings.cheatDays != snapshot.cheatDays { settings.cheatDays = snapshot.cheatDays }
+                if settings.trackingStartedOn != snapshot.trackingStartedOn {
+                    settings.trackingStartedOn = snapshot.trackingStartedOn
+                }
             }
         }
+
         // `goalsData` remains untouched as an additive CloudKit migration
         // source. Goal definitions are persisted independently below.
         // Keep duplicate settings records: a late legacy CloudKit import may
@@ -487,9 +615,14 @@ final class Store: ObservableObject {
                 ))
             }
         }
-        for (key, records) in byKey where !activeDayKeys.contains(key) {
-            records.forEach(context.delete)
+        // Only days the user emptied on this device are deleted. Any other
+        // stored day missing from this snapshot was imported after the
+        // snapshot was taken (e.g. while restoring from iCloud) — deleting it
+        // used to wipe restored history, and sync that deletion back up.
+        for key in locallyDeletedDayKeys where !activeDayKeys.contains(key) {
+            byKey[key]?.forEach(context.delete)
         }
+        locallyDeletedDayKeys.removeAll()
 
         // Upsert each definition independently. Absence from `snapshot` is
         // never interpreted as deletion: a stale debounced snapshot may not
@@ -747,6 +880,7 @@ final class Store: ObservableObject {
         let k = key(for: date)
         data.days[k]?.removeAll { $0.id == rowID }
         if data.days[k]?.isEmpty == true {
+            locallyDeletedDayKeys.insert(k)
             data.days.removeValue(forKey: k)
         }
     }
@@ -1175,6 +1309,7 @@ final class Store: ObservableObject {
         saveTask?.cancel()
         saveTask = nil
         hasPendingSave = false
+        locallyDeletedDayKeys.removeAll()
         if let context = container?.mainContext {
             try? context.delete(model: DayRecord.self)
             try? context.delete(model: SettingsRecord.self)

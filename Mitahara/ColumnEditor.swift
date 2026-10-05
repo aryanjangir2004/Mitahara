@@ -27,6 +27,10 @@ struct ColumnEditor: View {
     @State private var countsTowardSuccess: Bool
     @State private var confirmDelete = false
     @FocusState private var focusedField: Field?
+    /// Pre-selects the current value when the editor opens on a target, so
+    /// typing replaces "2000" instead of appending to it.
+    @State private var minSelection: TextSelection?
+    @State private var maxSelection: TextSelection?
 
     private enum Field: Hashable {
         case name, min, max
@@ -128,7 +132,18 @@ struct ColumnEditor: View {
                     focusedField = .name
                 } else if target.focusTarget, type == .number {
                     // Land on the bound the user is most likely to adjust.
-                    focusedField = (minText.isEmpty && !maxText.isEmpty) ? .max : .min
+                    let field: Field = (minText.isEmpty && !maxText.isEmpty) ? .max : .min
+                    focusedField = field
+                    Task { @MainActor in
+                        // After the sheet settles: selecting earlier gets
+                        // undone when the field places its cursor.
+                        try? await Task.sleep(nanoseconds: 700_000_000)
+                        switch field {
+                        case .min: minSelection = TextSelection(range: minText.startIndex..<minText.endIndex)
+                        case .max: maxSelection = TextSelection(range: maxText.startIndex..<maxText.endIndex)
+                        case .name: break
+                        }
+                    }
                 }
             }
         }
@@ -151,8 +166,8 @@ struct ColumnEditor: View {
 
     private var goalSection: some View {
         Section {
-            goalField("Min", caption: "at least", text: $minText, field: .min)
-            goalField("Max", caption: "at most", text: $maxText, field: .max)
+            goalField("Min", caption: "at least", text: $minText, selection: $minSelection, field: .min)
+            goalField("Max", caption: "at most", text: $maxText, selection: $maxSelection, field: .max)
             Toggle("Counts toward day result", isOn: $countsTowardSuccess)
         } header: {
             Text("Daily target")
@@ -202,7 +217,13 @@ struct ColumnEditor: View {
         !target.isNew && (parse(minText) != target.column.minGoal || parse(maxText) != target.column.maxGoal)
     }
 
-    private func goalField(_ title: String, caption: String, text: Binding<String>, field: Field) -> some View {
+    private func goalField(
+        _ title: String,
+        caption: String,
+        text: Binding<String>,
+        selection: Binding<TextSelection?>,
+        field: Field
+    ) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
@@ -211,7 +232,7 @@ struct ColumnEditor: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            TextField("none", text: text)
+            TextField("none", text: text, selection: selection)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .font(.system(.title3, design: .rounded).weight(.semibold))
